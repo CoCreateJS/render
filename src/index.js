@@ -29,7 +29,6 @@ import {
     getValueFromObject,
     dotNotationToObject,
     ObjectId,
-    safeParse,
     processOperatorsAsync
 } from "@cocreate/utils";
 import "@cocreate/element-prototype";
@@ -892,28 +891,28 @@ async function renderValue(
                         renderAs
                     );
 
-                    // 4. EXPRESSION EVALUATOR: Handle Math and Ternary logic
-                    if (value === undefined || value === null) {
-                        const dataProxy = new Proxy(data || {}, {
-                            get(target, prop) {
-                                if (typeof prop !== "string") return target[prop];
-                                if (prop in target) return target[prop];
-                                return getRenderValue(node, data, prop, renderAs);
-                            },
-                            has(target, prop) {
-                                if (typeof prop !== "string") return prop in target;
-                                return true; 
-                            }
-                        });
+                    // // 4. EXPRESSION EVALUATOR: Handle Math and Ternary logic
+                    // if (value === undefined || value === null) {
+                    //     const dataProxy = new Proxy(data || {}, {
+                    //         get(target, prop) {
+                    //             if (typeof prop !== "string") return target[prop];
+                    //             if (prop in target) return target[prop];
+                    //             return getRenderValue(node, data, prop, renderAs);
+                    //         },
+                    //         has(target, prop) {
+                    //             if (typeof prop !== "string") return prop in target;
+                    //             return true; 
+                    //         }
+                    //     });
 
-                        const parsedValue = safeParse(preProcessed, dataProxy);
+                    //     const parsedValue = safeParse(preProcessed, dataProxy);
 
-                        if (parsedValue !== null) {
-                            value = parsedValue;
-                        } else if (preProcessed !== placeholderContent) {
-                            value = preProcessed;
-                        }
-                    }
+                    //     if (parsedValue !== null) {
+                    //         value = parsedValue;
+                    //     } else if (preProcessed !== placeholderContent) {
+                    //         value = preProcessed;
+                    //     }
+                    // }
                 }
             } catch (error) {
                 console.error(error);
