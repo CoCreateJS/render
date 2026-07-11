@@ -1,3 +1,17 @@
+# [1.47.0](https://github.com/CoCreate-app/CoCreate-render/compare/v1.46.1...v1.47.0) (2026-07-11)
+
+
+### Bug Fixes
+
+* bump package versions ([242485d](https://github.com/CoCreate-app/CoCreate-render/commit/242485d149ff8501ebf4c0c4e66c795a48e86bde))
+* removed post install and add add packages to apprved list ([9dbffc8](https://github.com/CoCreate-app/CoCreate-render/commit/9dbffc821831c8bf252c5b87fb36eb9bb47fa57f))
+* semantic version handling ([60f46ed](https://github.com/CoCreate-app/CoCreate-render/commit/60f46ed5999aa25cf0e124e9198a061768a56662))
+
+
+### Features
+
+* proce ([862900a](https://github.com/CoCreate-app/CoCreate-render/commit/862900aa23af25961399428b5e1e369147b4354d))
+
 ## [1.46.1](https://github.com/CoCreate-app/CoCreate-render/compare/v1.46.0...v1.46.1) (2026-03-01)
 
 
