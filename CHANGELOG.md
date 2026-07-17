@@ -1,3 +1,10 @@
+# [1.48.0](https://github.com/CoCreate-app/CoCreate-render/compare/v1.47.0...v1.48.0) (2026-07-17)
+
+
+### Features
+
+* update automated workflow and release configuration for improved semantic release handling ([5187353](https://github.com/CoCreate-app/CoCreate-render/commit/5187353c5616f741130ff6e8ebe7922e46441f94))
+
 # [1.47.0](https://github.com/CoCreate-app/CoCreate-render/compare/v1.46.1...v1.47.0) (2026-07-11)
 
 
