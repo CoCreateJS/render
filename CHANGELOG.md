@@ -1,3 +1,10 @@
+## [1.48.2](https://github.com/CoCreate-app/CoCreate-render/compare/v1.48.1...v1.48.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* set default branch to main ([af55945](https://github.com/CoCreate-app/CoCreate-render/commit/af5594556f6ac48195adb4f2de9dc8e958909afc))
+
 ## [1.48.1](https://github.com/CoCreate-app/CoCreate-render/compare/v1.48.0...v1.48.1) (2026-07-17)
 
 
