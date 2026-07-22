@@ -23,13 +23,13 @@
 /*globals CustomEvent*/
 import Actions from "@cocreate/actions";
 import Observer from "@cocreate/observer";
-import uuid from "@cocreate/uuid";
 import {
     queryElements,
     getValueFromObject,
     dotNotationToObject,
     ObjectId,
-    processOperatorsAsync
+    astAsync,
+    uuid
 } from "@cocreate/utils";
 import "@cocreate/element-prototype";
 import "./index.css";
@@ -270,7 +270,7 @@ async function render({
             } else {
                 // TODO: if $auto here every subsequent clone will have same value, not replacing here will apply unique value to each clone
                 if (key === "$auto")
-                    key = key.replace(/\$auto/g, uuid.generate(6));
+                    key = key.replace(/\$auto/g,  uuid(6));
 
                 if (key) element[i].setAttribute("render", key);
 
@@ -525,7 +525,7 @@ function cloneTemplate(template) {
 
     let renderAs = clone.getAttribute("render-as");
     if (renderAs === "$auto") {
-        renderAs = uuid.generate(6);
+        renderAs =  uuid(6);
         clone = clone.outerHTML.replace(/\$auto/g, renderAs);
     }
 
@@ -555,7 +555,7 @@ function insertElement(
 ) {
     let eid = element.getAttribute("eid");
     if (!eid) {
-        eid = uuid.generate(6);
+        eid =  uuid(6);
         element.setAttribute("eid", eid);
     }
 
@@ -818,6 +818,17 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
     }
 }
 
+/**
+ * Renders placeholders within a string using asynchronous AST calculations and data context binding.
+ * 
+ * @param {Node} node - The target DOM node (attributes, text nodes, elements).
+ * @param {Object} data - The contextual database record or dataset being rendered.
+ * @param {string} placeholder - The raw template string containing double curly braces (e.g. "{{ $query('#input').value }}").
+ * @param {string} renderAs - Optional alias scope context.
+ * @param {HTMLElement} renderedNode - Optional target element where rendering applies.
+ * @param {number} index - Optional current iteration index if rendering a list.
+ * @returns {Promise<string>} - A promise resolving to the fully processed output string.
+ */
 async function renderValue(
     node,
     data,
@@ -828,7 +839,7 @@ async function renderValue(
 ) {
     let output = placeholder;
 
-    // Determine the actual HTMLElement for processOperatorsAsync
+    // Determine the actual HTMLElement for astAsync
     // If the node is not an Element (nodeType 1), get its owner or parent element.
     // This safely covers Attributes (ownerElement), Text, Comments, etc. (parentElement)
     let contextElement = node;
@@ -836,9 +847,8 @@ async function renderValue(
         contextElement = node.ownerElement || node.parentElement;
     }
 
-    // DEPRECATED: {[ ]} and {( )} 
-    // Matches ONLY the innermost {{ }} brackets.
-    let regex = /\{\{((?:(?!\{\{|\}\})[\s\S])+?)\}\}/;
+    // Matches ONLY the innermost {{ }} brackets to prevent greedy-matching nested boundaries.
+    let regex = /\{\{\s*((?:(?!\{\{|\}\})[\s\S])+?)\s*\}\}/;
     let omitted = {};
 
     let match;
@@ -855,7 +865,16 @@ async function renderValue(
                     // --- UNIFIED PARSING PROCESS ---
                     let preProcessed = placeholderContent;
 
-                    // 1. PRE-PROCESSOR FOR QUOTED OPERATORS
+                    // Build unified evaluation sandbox inheriting state & local indices
+                    const sandboxContext = {
+                        data: data,
+                        $data: data,
+                        index: index,
+                        $index: index,
+                        ...data // Expose data fields natively so they are available as local sandbox variables
+                    };
+
+                    // 1. PRE-PROCESSOR FOR QUOTED OPERATORS (Saves and processes quoted formulas first)
                     let quoteRegex = /(['"])(.*?)\1/g;
                     let quoteMatch;
                     let replacements = [];
@@ -863,7 +882,11 @@ async function renderValue(
                         let quoteType = quoteMatch[1];
                         let content = quoteMatch[2];
                         if (content.trim().startsWith('$')) {
-                            let resolved = await processOperatorsAsync(contextElement, content);
+                            let resolved = await astAsync({
+                                executeAST: content,
+                                node: contextElement,
+                                sandbox: sandboxContext
+                            });
                             if (resolved === null || resolved === undefined) resolved = "";
                             replacements.push({
                                 original: quoteMatch[0],
@@ -876,11 +899,12 @@ async function renderValue(
                         preProcessed = preProcessed.replace(r.original, r.replacement);
                     }
 
-                    // 2. PRE-PROCESSOR: Resolve unquoted DOM selectors, custom operators, and CRUD JSON
-                    preProcessed = await processOperatorsAsync(
-                        contextElement, 
-                        preProcessed
-                    );
+                    // 2. PRE-PROCESSOR: Resolve unquoted DOM selectors, custom operators, and CRUD JSON formulas
+                    preProcessed = await astAsync({
+                        executeAST: preProcessed,
+                        node: contextElement,
+                        sandbox: sandboxContext
+                    });
 
                     // 3. DATA LOOKUP: Resolve simple keys from the provided data object
                     // Keep `node` here because getRenderValue needs to look up the attribute cache!
@@ -890,32 +914,9 @@ async function renderValue(
                         preProcessed,
                         renderAs
                     );
-
-                    // // 4. EXPRESSION EVALUATOR: Handle Math and Ternary logic
-                    // if (value === undefined || value === null) {
-                    //     const dataProxy = new Proxy(data || {}, {
-                    //         get(target, prop) {
-                    //             if (typeof prop !== "string") return target[prop];
-                    //             if (prop in target) return target[prop];
-                    //             return getRenderValue(node, data, prop, renderAs);
-                    //         },
-                    //         has(target, prop) {
-                    //             if (typeof prop !== "string") return prop in target;
-                    //             return true; 
-                    //         }
-                    //     });
-
-                    //     const parsedValue = safeParse(preProcessed, dataProxy);
-
-                    //     if (parsedValue !== null) {
-                    //         value = parsedValue;
-                    //     } else if (preProcessed !== placeholderContent) {
-                    //         value = preProcessed;
-                    //     }
-                    // }
                 }
             } catch (error) {
-                console.error(error);
+                console.error("[Renderer AST Bridge] Value computation error:", error);
             }
 
             // Replace the placeholder with the resolved value
@@ -981,7 +982,7 @@ function getRenderValue(node, data, key, renderAs) {
                         } else if (key === "object" || key === "_id")
                             value = ObjectId().toString();
                         else if (key === "uuid") {
-                            value = uuid.generate(6);
+                            value =  uuid(6);
                         } else if (parent.source) {
                             Data = parent.source.data;
                         } else if (parent.parent) {
