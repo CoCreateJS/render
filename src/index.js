@@ -881,7 +881,7 @@ async function renderValue(
                     while ((quoteMatch = quoteRegex.exec(preProcessed)) !== null) {
                         let quoteType = quoteMatch[1];
                         let content = quoteMatch[2];
-                        if (content.trim().startsWith('$')) {
+                        if (content.trim().startsWith('\u0024')) {
                             let resolved = await astAsync({
                                 executeAST: content,
                                 node: contextElement,
