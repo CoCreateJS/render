@@ -163,13 +163,13 @@ async function render({
         }
     }
 
-    if (data.$filter) {
-        index = index || data.$filter.startingIndex || data.$filter.index;
-        update = update || data.$filter.update;
-        remove = remove || data.$filter.remove;
+    if (data.filter) {
+        index = index || data.filter.startingIndex || data.filter.index;
+        update = update || data.filter.update;
+        remove = remove || data.filter.remove;
     }
 
-    let isMutation = remove || update || (data.$filter && data.$filter.create);
+    let isMutation = remove || update || (data.filter && data.filter.create);
 
     let sourceData = sources.get(source);
     if (!sourceData) {
@@ -259,7 +259,7 @@ async function render({
                         clone = clones.get(data[key][j].name);
                     }
 
-                    if (!currentIndex) currentIndex = data.$filter.currentIndex;
+                    if (!currentIndex) currentIndex = data.filter.currentIndex;
 
                     if (!clone) continue;
 
@@ -362,9 +362,9 @@ async function renderTemplate(template, data, key, index, keyPath) {
     }
     let reference = el.getAttribute("render-reference");
 
-    let isInsert = data.$filter && (data.$filter.create || data.$filter.update);
+    let isInsert = data.filter && (data.filter.create || data.filter.update);
     if (renderType !== "object") {
-        if ((!isInsert && !index) || data.$filter.overwrite) {
+        if ((!isInsert && !index) || data.filter.overwrite) {
             if (!templateData.clones) {
                 return
                 if (templateData.template) {
@@ -574,8 +574,8 @@ function insertElement(
             item = clones.splice(currentIndex, 1)[0];
         }
 
-        if (data && data.$filter && data.$filter.startingIndex)
-            index += data.$filter.startingIndex;
+        if (data && data.filter && data.filter.startingIndex)
+            index += data.filter.startingIndex;
         clones.splice(index, 0, item); // Insert item into clones at the specified index
 
         if (renderReverse !== null && renderReverse !== "false" ) {
