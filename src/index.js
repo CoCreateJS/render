@@ -612,7 +612,10 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
     if (!data) return;
 
     let renderedNode = renderedNodes.get(node);
-    if (!renderedNode) renderedNode = { key, renderAs };
+    if (!renderedNode) {
+        renderedNode = { element: node, key, renderAs };
+        renderedNodes.set(node, renderedNode);
+    }
 
     if (!renderedNode.key) renderedNode.key = key;
     else if (!key) key = renderedNode.key;
@@ -637,14 +640,11 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
 
                 let oldEid = renderedNode.eid;
                 let temp = renderedNode.template;
-                if (!temp) {
-                    console.log("temp could not be found");
-                } else if (!temp.clones) {
-                    if (temp.template) temp = temp.template;
-                    else console.log(temp);
+                while (temp && !temp.clones)
+                    temp = temp.template || temp.parent;
 
-                    if (oldEid && oldEid !== eid) temp.clones.delete(oldEid);
-
+                if (temp?.clones && oldEid && oldEid !== eid) {
+                    temp.clones.delete(oldEid);
                     temp.clones.set(eid, node);
                 }
 
@@ -667,6 +667,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
                     renderAs,
                     parent: renderedNode
                 };
+                renderedNodes.set(attr, renderedAttribute);
             }
 
             let namePlaceholder = renderedAttribute.placeholder.name || name;
@@ -734,7 +735,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
         }
         if (node.hasAttribute("render") && !node.hasAttribute("render-clone")) {
             let renderKey = node.getAttribute("render") || key
-            renderTemplate(node, data, renderKey);
+            await renderTemplate(node, data, renderKey);
         } else if (node.childNodes.length > 0) {
             for (let childNode of node.childNodes) {
                 await renderValues(
@@ -912,7 +913,8 @@ async function renderValue(
                         node,
                         data,
                         preProcessed,
-                        renderAs
+                        renderAs,
+                        index
                     );
                 }
             } catch (error) {
@@ -948,7 +950,7 @@ async function renderValue(
     return output;
 }
 
-function getRenderValue(node, data, key, renderAs) {
+function getRenderValue(node, data, key, renderAs, renderIndex) {
     let operator;
     if (key.startsWith("$")) {
         let keys = key.split(".");
@@ -1005,17 +1007,18 @@ function getRenderValue(node, data, key, renderAs) {
                             key.split(".")[0]
                         );
                         if (renderedData) {
-                            let index;
+                            let index = renderIndex;
                             if (
-                                !parent.clones.size ||
-                                parent.clones.size === 1
+                                index === undefined &&
+                                (!parent.clones.size ||
+                                    parent.clones.size === 1)
                             ) {
                                 index = 0;
-                            } else if (eid) {
+                            } else if (index === undefined && eid) {
                                 index = Array.from(
                                     parent.clones.keys()
                                 ).indexOf(eid);
-                            } else console.log("eid not found");
+                            }
 
                             if (index >= 0) {
                                 Data = {
