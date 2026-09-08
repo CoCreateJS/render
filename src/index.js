@@ -164,9 +164,15 @@ async function render({
     }
 
     if (data.filter) {
-        index = index || data.filter.startingIndex || data.filter.index;
-        update = update || data.filter.update;
-        remove = remove || data.filter.remove;
+        update ??= data.filter.update;
+        remove ??= data.filter.remove;
+
+        const isMutation = remove || update || data.filter.create;
+        if (index == null) {
+            index = isMutation
+                ? data.filter.index
+                : data.filter.startingIndex ?? data.filter.index;
+        }
     }
 
     let isMutation = remove || update || (data.filter && data.filter.create);
@@ -259,7 +265,8 @@ async function render({
                         clone = clones.get(data[key][j].name);
                     }
 
-                    if (!currentIndex) currentIndex = data.filter.currentIndex;
+                    if (currentIndex == null)
+                        currentIndex = data.filter.currentIndex;
 
                     if (!clone) continue;
 
@@ -480,11 +487,16 @@ async function renderTemplate(template, data, key, index, keyPath) {
                         object = dotNotationToObject(object);
                 } else object = object;
 
-                let index;
-                if (key !== "data") index = i;
+                let insertIndex;
+                if (key !== "data") {
+                    insertIndex =
+                        data.filter?.create && index != null
+                            ? index + i
+                            : i;
+                }
 
                 clone.renderData = object
-                clone.index = index
+                clone.index = insertIndex
                 await renderValues(
                     clone.element,
                     object,
@@ -492,12 +504,12 @@ async function renderTemplate(template, data, key, index, keyPath) {
                     renderAs,
                     null,
                     null,
-                    index
+                    insertIndex
                 );
                 insertElement(
                     templateData,
                     clone.element,
-                    index,
+                    insertIndex,
                     "",
                     data,
                     renderReverse
