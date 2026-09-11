@@ -82,7 +82,7 @@ function init(element) {
             } catch (error) {
                 console.error("Failed to parse render-data:", error);
             }
-        }   
+        }
     }
 }
 
@@ -277,7 +277,7 @@ async function render({
             } else {
                 // TODO: if $auto here every subsequent clone will have same value, not replacing here will apply unique value to each clone
                 if (key === "$auto")
-                    key = key.replace(/\$auto/g,  uuid(6));
+                    key = key.replace(/\$auto/g, uuid(6));
 
                 if (key) element[i].setAttribute("render", key);
 
@@ -296,15 +296,16 @@ async function render({
 }
 
 async function renderTemplate(template, data, key, index, keyPath) {
+    if (template instanceof HTMLTemplateElement && !template.content.firstElementChild) return;
     if (!(template instanceof HTMLElement)) {
         console.log("template not an element but should be")
     }
     let templateData = renderedNodes.get(template);
     if (!templateData) {
-        templateData = {element: template, clones: new Map() };
+        templateData = { element: template, clones: new Map() };
         renderedNodes.set(template, templateData);
-    } 
-    
+    }
+
     if (!templateData.parent && !templateData.source) {
         let parentRender = template.parentElement.closest("[render]")
         if (parentRender || template.source)
@@ -313,7 +314,7 @@ async function renderTemplate(template, data, key, index, keyPath) {
             console.log("template parent missing is there no parent or is this an error? and source is", templateData.source)
     }
 
-    if(!templateData.source && templateData.parent && templateData.parent.source){
+    if (!templateData.source && templateData.parent && templateData.parent.source) {
         templateData.source = templateData.parent.source
     }
 
@@ -330,8 +331,8 @@ async function renderTemplate(template, data, key, index, keyPath) {
     let renderData;
     if (key) {
         renderData = getRenderValue(templateData.element, data, key);
-    } 
-    
+    }
+
     if (!renderData) {
         renderData = data;
     }
@@ -339,7 +340,7 @@ async function renderTemplate(template, data, key, index, keyPath) {
     templateData.renderData = renderData;
     let el = templateData.element;
     if (el.nodeType !== 1) {
-            el = templateData.parent.element;
+        el = templateData.parent.element;
     }
 
     let renderAs = templateData.renderAs
@@ -386,7 +387,7 @@ async function renderTemplate(template, data, key, index, keyPath) {
                 element.remove();
                 templateData.clones.delete(key);
             }
-        } 
+        }
     }
 
     if ((key && !Array.isArray(renderData)) || renderType === "object") {
@@ -524,7 +525,7 @@ function cloneTemplate(template) {
     let cloneTagName = clone.tagName;
 
     if (clone.tagName == "TEMPLATE") {
-        clone = template.element.content.firstElementChild;
+        clone = clone.content.firstElementChild;
         for (let attribute of template.element.attributes) {
             clone.setAttribute(attribute.name, attribute.value || "");
         }
@@ -537,7 +538,7 @@ function cloneTemplate(template) {
 
     let renderAs = clone.getAttribute("render-as");
     if (renderAs === "$auto") {
-        renderAs =  uuid(6);
+        renderAs = uuid(6);
         clone = clone.outerHTML.replace(/\$auto/g, renderAs);
     }
 
@@ -567,7 +568,7 @@ function insertElement(
 ) {
     let eid = element.getAttribute("eid");
     if (!eid) {
-        eid =  uuid(6);
+        eid = uuid(6);
         element.setAttribute("eid", eid);
     }
 
@@ -590,7 +591,7 @@ function insertElement(
             index += data.filter.startingIndex;
         clones.splice(index, 0, item); // Insert item into clones at the specified index
 
-        if (renderReverse !== null && renderReverse !== "false" ) {
+        if (renderReverse !== null && renderReverse !== "false") {
             // Chat-specific logic: reverse rendering but still inserting based on sorting
             if (clones[index + 1] && clones[index + 1][1] !== element) {
                 clones[index + 1][1].insertAdjacentElement("afterend", element);
@@ -869,7 +870,7 @@ async function renderValue(
         match = output.match(regex);
         if (match) {
             let value;
-            let placeholderContent = match[1].trim(); 
+            let placeholderContent = match[1].trim();
 
             try {
                 if (placeholderContent === "index" && index >= 0) {
@@ -907,7 +908,7 @@ async function renderValue(
                             });
                         }
                     }
-                    
+
                     for (let r of replacements) {
                         preProcessed = preProcessed.replace(r.original, r.replacement);
                     }
@@ -972,7 +973,10 @@ function getRenderValue(node, data, key, renderAs, renderIndex) {
         }
     }
 
-    let value = getValueFromObject(data, key);
+    // Field reads can arrive wrapped under a literal dotted or bracketed key.
+    let value = Object.prototype.hasOwnProperty.call(data, key)
+        ? data[key]
+        : getValueFromObject(data, key);
 
     if (!value && value !== "" && node) {
         let parentTemplate = node;
@@ -996,7 +1000,7 @@ function getRenderValue(node, data, key, renderAs, renderIndex) {
                         } else if (key === "object" || key === "_id")
                             value = ObjectId().toString();
                         else if (key === "uuid") {
-                            value =  uuid(6);
+                            value = uuid(6);
                         } else if (parent.source) {
                             Data = parent.source.data;
                         } else if (parent.parent) {
@@ -1170,7 +1174,7 @@ Observer.init({
         if (renderedNode) {
             if (renderedNode.renderData) {
                 data = renderedNode.renderData;
-            } 
+            }
         } else {
             let sourceElement = mutation.target.parentElement.closest("[render-query]")
             let sourceData = sources.get(sourceElement);
