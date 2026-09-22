@@ -750,6 +750,17 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
                 return;
             }
         }
+
+        // A nested render-query owns its template and descendants. Parent
+        // rendering may resolve this controller's attributes, but its own
+        // render cycle must populate its target.
+        if (
+            node.hasAttribute("render-query") &&
+            !node.hasAttribute("render-clone")
+        ) {
+            return;
+        }
+
         if (node.hasAttribute("render") && !node.hasAttribute("render-clone")) {
             let renderKey = node.getAttribute("render") || key
             await renderTemplate(node, data, renderKey);
