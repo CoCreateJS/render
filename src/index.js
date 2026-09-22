@@ -296,15 +296,18 @@ async function render({
 }
 
 async function renderTemplate(template, data, key, index, keyPath) {
-    if (template instanceof HTMLTemplateElement && !template.content.firstElementChild) return;
-    if (!(template instanceof HTMLElement)) {
-        console.log("template not an element but should be")
+    if (template && template.nodeType !== 1) {
+        template = template.ownerElement || template.parentElement;
     }
+    if (!template) return;
+    if (template instanceof HTMLTemplateElement && !template.content.firstElementChild) return;
     let templateData = renderedNodes.get(template);
     if (!templateData) {
         templateData = { element: template, clones: new Map() };
         renderedNodes.set(template, templateData);
     }
+
+    if (!templateData.clones) templateData.clones = new Map();
 
     if (!templateData.parent && !templateData.source) {
         let parentRender = template.parentElement.closest("[render]")
@@ -343,14 +346,12 @@ async function renderTemplate(template, data, key, index, keyPath) {
         el = templateData.parent.element;
     }
 
-    let renderAs = templateData.renderAs
-    if (!templateData.renderAs) {
-        renderAs =
-            el.getAttribute("render-as") ||
-            el.getAttribute("render") ||
-            key;
-        templateData.renderAs = renderAs;
-    }
+    let renderAs =
+        el.getAttribute("render-as") ||
+        el.getAttribute("render") ||
+        templateData.renderAs ||
+        key;
+    templateData.renderAs = renderAs;
 
     let renderType;
     if (templateData.source && templateData.source.element)
@@ -370,9 +371,11 @@ async function renderTemplate(template, data, key, index, keyPath) {
     }
     let reference = el.getAttribute("render-reference");
 
+    const isLoadMore = data.filter?.loadMore && !data.filter?.overwrite;
+    const appendIndex = templateData.clones.size;
     let isInsert = data.filter && (data.filter.create || data.filter.update);
     if (renderType !== "object") {
-        if ((!isInsert && !index) || data.filter.overwrite) {
+        if ((!isInsert && !isLoadMore && !index) || data.filter?.overwrite) {
             if (!templateData.clones) {
                 return
                 if (templateData.template) {
@@ -490,8 +493,9 @@ async function renderTemplate(template, data, key, index, keyPath) {
 
                 let insertIndex;
                 if (key !== "data") {
-                    insertIndex =
-                        data.filter?.create && index != null
+                    insertIndex = isLoadMore
+                        ? appendIndex + i
+                        : data.filter?.create && index != null
                             ? index + i
                             : i;
                 }
@@ -587,7 +591,7 @@ function insertElement(
             item = clones.splice(currentIndex, 1)[0];
         }
 
-        if (data && data.filter && data.filter.startingIndex)
+        if (data && data.filter && data.filter.startingIndex && !data.filter.loadMore)
             index += data.filter.startingIndex;
         clones.splice(index, 0, item); // Insert item into clones at the specified index
 
