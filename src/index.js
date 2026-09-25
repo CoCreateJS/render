@@ -238,12 +238,15 @@ async function render({
 
         let clone;
         if (remove) {
-            for (let j = 0; j < data[key].length; j++) {
+            const removedItems = data[key];
+            if (!Array.isArray(removedItems) || !clones) continue;
+
+            for (let j = 0; j < removedItems.length; j++) {
                 let cloneKey;
                 if (key === "object") {
-                    cloneKey = data[key][j]._id;
+                    cloneKey = removedItems[j]._id;
                 } else {
-                    cloneKey = data[key][j].name;
+                    cloneKey = removedItems[j].name;
                 }
 
                 clone = clones.get(cloneKey);
@@ -534,7 +537,7 @@ function cloneTemplate(template) {
             clone.setAttribute(attribute.name, attribute.value || "");
         }
     } else {
-        clone.classList.remove("template");
+        clone.classList?.remove("template");
         clone.removeAttribute("template");
     }
 
