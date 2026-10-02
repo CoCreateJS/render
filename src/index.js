@@ -38,6 +38,48 @@ const sources = new Map();
 const renderedNodes = new Map();
 const elementSelector = "[render-query]";
 
+function getRenderContext(renderedNode, key) {
+    const keys = renderedNode?.keys;
+    if (!keys || Array.isArray(keys) || typeof keys !== "object") return;
+
+    const contextKey = key || Object.keys(keys).at(-1);
+    if (!contextKey || !keys[contextKey]) return;
+
+    return {
+        key: contextKey,
+        keyPath: keys[contextKey].path,
+        renderData: keys[contextKey].data,
+        renderAs: keys[contextKey].renderAs
+    };
+}
+
+function setRenderContext(renderedNode, context = {}) {
+    if (!renderedNode.keys || Array.isArray(renderedNode.keys))
+        renderedNode.keys = {};
+
+    const contextKey =
+        context.key || Object.keys(renderedNode.keys).at(-1) || "$default";
+    const renderContext = renderedNode.keys[contextKey] || {};
+    if (context.keyPath !== undefined)
+        renderContext.path = context.keyPath;
+    if (context.renderData !== undefined)
+        renderContext.data = context.renderData;
+    if (context.renderAs !== undefined)
+        renderContext.renderAs = context.renderAs;
+
+    // Reinsert the context so the last key always represents the active
+    // render scope without requiring top-level key metadata.
+    delete renderedNode.keys[contextKey];
+    renderedNode.keys[contextKey] = renderContext;
+
+    return {
+        key: contextKey,
+        keyPath: renderContext.path,
+        renderData: renderContext.data,
+        renderAs: renderContext.renderAs
+    };
+}
+
 /**
  * Initializes elements based on specified rendering attributes. If a specific element is provided, it initializes that element.
  * If no element is provided, it queries and initializes all elements matching the defined selector criteria for rendering attributes.
@@ -306,11 +348,17 @@ async function renderTemplate(template, data, key, index, keyPath) {
     if (template instanceof HTMLTemplateElement && !template.content.firstElementChild) return;
     let templateData = renderedNodes.get(template);
     if (!templateData) {
-        templateData = { element: template, clones: new Map() };
+        templateData = {
+            element: template,
+            clones: new Map(),
+            isTemplate: true
+        };
         renderedNodes.set(template, templateData);
     }
 
+    templateData.element = template;
     if (!templateData.clones) templateData.clones = new Map();
+    templateData.isTemplate = true;
 
     if (!templateData.parent && !templateData.source) {
         let parentRender = template.parentElement.closest("[render]")
@@ -324,26 +372,15 @@ async function renderTemplate(template, data, key, index, keyPath) {
         templateData.source = templateData.parent.source
     }
 
-    if (!templateData.keyPath) {
-        if (keyPath) {
-            templateData.keyPath = keyPath;
-        } else if (templateData.parent && templateData.parent.keyPath) {
-            templateData.keyPath = templateData.parent.keyPath;
-        } else if (key) {
-            templateData.keyPath = key;
-        }
-    }
-
     let renderData;
     if (key) {
         renderData = getRenderValue(templateData.element, data, key);
     }
 
-    if (!renderData) {
-        renderData = data;
+    if (renderData === undefined || renderData === null) {
+        renderData = key ? [] : data;
     }
 
-    templateData.renderData = renderData;
     let el = templateData.element;
     if (el.nodeType !== 1) {
         el = templateData.parent.element;
@@ -352,9 +389,17 @@ async function renderTemplate(template, data, key, index, keyPath) {
     let renderAs =
         el.getAttribute("render-as") ||
         el.getAttribute("render") ||
-        templateData.renderAs ||
+        getRenderContext(templateData, key)?.renderAs ||
         key;
-    templateData.renderAs = renderAs;
+    const parentContext = getRenderContext(templateData.parent);
+    const resolvedKeyPath =
+        keyPath || key || parentContext?.keyPath;
+    const templateContext = setRenderContext(templateData, {
+        key,
+        keyPath: resolvedKeyPath,
+        renderData,
+        renderAs
+    });
 
     let renderType;
     if (templateData.source && templateData.source.element)
@@ -438,10 +483,15 @@ async function renderTemplate(template, data, key, index, keyPath) {
             let renderedKey = key.split(".");
             renderedKey = renderedKey[renderedKey.length - 1];
 
-            clone.key = keys[i];
-            clone.keyPath = templateData.keyPath + "." + renderedKey;
+            const cloneKeyPath = `${templateContext.keyPath}.${renderedKey}`;
             clone.parentKey = renderedKey;
             clone.renderKey = key;
+            setRenderContext(clone, {
+                key: keys[i],
+                keyPath: cloneKeyPath,
+                renderData: Data,
+                renderAs
+            });
             clone.element.setAttribute("renderedKey", keys[i]);
             await renderValues(clone.element, Data, keys[i], renderAs);
             insertElement(templateData, clone.element, index);
@@ -455,7 +505,12 @@ async function renderTemplate(template, data, key, index, keyPath) {
 
         if (!renderData) {
             let clone = cloneTemplate(templateData);
-            clone.keyPath = templateData.keyPath;
+            setRenderContext(clone, {
+                key,
+                keyPath: templateContext.keyPath,
+                renderData: data,
+                renderAs
+            });
             await renderValues(clone.element, data, key, renderAs);
             insertElement(templateData, clone.element, index);
         } else {
@@ -467,7 +522,7 @@ async function renderTemplate(template, data, key, index, keyPath) {
                 let test = clone.element.getAttribute("render-as");
                 if (test) renderAs = test;
 
-                clone.keyPath = templateData.keyPath || "" + `[${i}]`;
+                const cloneKeyPath = `${templateContext.keyPath || ""}[${i}]`;
 
                 let object;
                 if (
@@ -503,7 +558,12 @@ async function renderTemplate(template, data, key, index, keyPath) {
                             : i;
                 }
 
-                clone.renderData = object
+                setRenderContext(clone, {
+                    key,
+                    keyPath: cloneKeyPath,
+                    renderData: object,
+                    renderAs
+                });
                 clone.index = insertIndex
                 await renderValues(
                     clone.element,
@@ -563,6 +623,23 @@ function cloneTemplate(template) {
     let renderedNode = { template, element: clone };
     renderedNodes.set(clone, renderedNode);
     return renderedNode;
+}
+
+function getCloneIdentity(data, renderAs) {
+    const value = renderAs ? getValueFromObject(data, renderAs) : data;
+    if (!value || typeof value !== "object") return;
+
+    for (const key of ["_id", "id", "object", "name", "key"]) {
+        const identity = value[key];
+        if (
+            (typeof identity === "string" || typeof identity === "number") &&
+            identity !== "" &&
+            identity !== "{}" &&
+            identity !== "[]"
+        ) {
+            return String(identity);
+        }
+    }
 }
 
 function insertElement(
@@ -633,18 +710,20 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
 
     let renderedNode = renderedNodes.get(node);
     if (!renderedNode) {
-        renderedNode = { element: node, key, renderAs };
+        renderedNode = { element: node };
         renderedNodes.set(node, renderedNode);
     }
 
-    if (!renderedNode.key) renderedNode.key = key;
-    else if (!key) key = renderedNode.key;
-
-    if (!renderedNode.renderAs) renderedNode.renderAs = renderAs;
-    else if (!renderAs) renderAs = renderedNode.renderAs;
-
-    if (keyPath) renderedNode.keyPath = keyPath;
-    else if (renderedNode.keyPath) keyPath = renderedNode.keyPath;
+    const previousContext = getRenderContext(renderedNode, key);
+    if (!key) key = previousContext?.key;
+    if (!renderAs) renderAs = previousContext?.renderAs;
+    if (!keyPath) keyPath = previousContext?.keyPath;
+    setRenderContext(renderedNode, {
+        key,
+        keyPath,
+        renderData: data,
+        renderAs
+    });
 
     if (parent) renderedNode.parent = parent;
 
@@ -652,12 +731,8 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
         if (node.hasAttribute("render-clone")) {
             parent = renderedNode;
 
-            for (let eid of ["_id", "name", "key"]) {
-                if (renderAs) eid = data[renderAs][eid];
-                else eid = data[eid];
-
-                if (!eid) continue;
-
+            const eid = getCloneIdentity(data, renderAs);
+            if (eid) {
                 let oldEid = renderedNode.eid;
                 let temp = renderedNode.template;
                 while (temp && !temp.clones)
@@ -671,7 +746,6 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
                 renderedNode.eid = eid;
 
                 node.setAttribute("eid", eid);
-                break;
             }
         }
 
@@ -768,7 +842,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
             let renderKey = node.getAttribute("render") || key
             await renderTemplate(node, data, renderKey);
         } else if (node.childNodes.length > 0) {
-            for (let childNode of node.childNodes) {
+            for (let childNode of Array.from(node.childNodes)) {
                 await renderValues(
                     childNode,
                     data,
@@ -825,8 +899,10 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
                     }
                     renderedParent.text = text;
                     for (let newChild of newNode.childNodes) {
-                        renderedNode.element = newChild;
-                        renderedNodes.set(newChild, renderedNode);
+                        renderedNodes.set(newChild, {
+                            ...renderedNode,
+                            element: newChild
+                        });
                     }
                     renderedNodes.delete(node);
                     node.replaceWith(...newNode.childNodes);
@@ -992,22 +1068,36 @@ function getRenderValue(node, data, key, renderAs, renderIndex) {
     }
 
     // Field reads can arrive wrapped under a literal dotted or bracketed key.
-    let value = Object.prototype.hasOwnProperty.call(data, key)
+    const hasLiteralKey = Object.prototype.hasOwnProperty.call(data, key);
+    const rootKey = key.split(/[.\[]/, 1)[0];
+    const ownsRootScope =
+        hasLiteralKey || Object.prototype.hasOwnProperty.call(data, rootKey);
+    let value = hasLiteralKey
         ? data[key]
         : getValueFromObject(data, key);
 
-    if (!value && value !== "" && node) {
+    // Once the current scope owns a root (for example `object`), a missing
+    // descendant must remain missing instead of leaking in from another
+    // clone's ancestor/source data.
+    if ((value === undefined || value === null) && node && !ownsRootScope) {
         let parentTemplate = node;
         do {
             let parentNode = renderedNodes.get(parentTemplate);
             if (parentNode) {
-                if (!value && (parentNode.parent || parentNode.template)) {
+                if (
+                    (value === undefined || value === null) &&
+                    (parentNode.parent || parentNode.template)
+                ) {
                     let Data,
                         eid,
                         parent = parentNode.parent || parentNode.template;
                     do {
+                        const parentNodeContext = getRenderContext(parentNode);
+                        const parentContext = getRenderContext(parent);
                         if (key.includes("keyPath")) {
-                            value = parentNode.keyPath || parent.keyPath;
+                            value =
+                                parentNodeContext?.keyPath ||
+                                parentContext?.keyPath;
                         } else if (key.includes("parentKey")) {
                             value =
                                 parentNode.parentKey ||
@@ -1030,17 +1120,24 @@ function getRenderValue(node, data, key, renderAs, renderIndex) {
                         }
 
                         if (!Data && parent && parent.eid) eid = parent.eid;
-                    } while (!value && parent && !Data);
+                    } while (
+                        (value === undefined || value === null) &&
+                        parent &&
+                        !Data
+                    );
 
-                    if (!value && Data) {
+                    if ((value === undefined || value === null) && Data) {
                         value = getValueFromObject(Data, key);
                     }
-                    if (!value && key.includes(".")) {
+                    if (
+                        (value === undefined || value === null) &&
+                        key.includes(".")
+                    ) {
                         let renderedData = getValueFromObject(
                             Data,
                             key.split(".")[0]
                         );
-                        if (renderedData) {
+                        if (renderedData !== undefined && renderedData !== null) {
                             let index = renderIndex;
                             if (
                                 index === undefined &&
@@ -1065,13 +1162,16 @@ function getRenderValue(node, data, key, renderAs, renderIndex) {
                 }
             }
 
-            if (!value && parentTemplate.parentElement) {
+            if (
+                (value === undefined || value === null) &&
+                parentTemplate.parentElement
+            ) {
                 parentTemplate =
                     parentTemplate.parentElement.closest("[render]");
             } else {
                 parentTemplate = undefined;
             }
-        } while (!value && parentTemplate);
+        } while ((value === undefined || value === null) && parentTemplate);
     }
 
     if (operator) {
@@ -1190,8 +1290,9 @@ Observer.init({
         let renderedNode = renderedNodes.get(parentElement);
         let data;
         if (renderedNode) {
-            if (renderedNode.renderData) {
-                data = renderedNode.renderData;
+            const renderContext = getRenderContext(renderedNode);
+            if (renderContext?.renderData) {
+                data = renderContext.renderData;
             }
         } else {
             let sourceElement = mutation.target.parentElement.closest("[render-query]")
