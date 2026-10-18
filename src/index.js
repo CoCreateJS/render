@@ -469,7 +469,11 @@ async function renderTemplate(template, data, key, index, keyPath) {
             if (Array.isArray(value)) type = "array";
             else if (typeof value == "object") type = "object";
 
-            let Data = { [renderAs]: { key: keys[i], value, type } };
+            // Nested object templates still need fields from the source record.
+            let Data = {
+                ...data,
+                [renderAs]: { key: keys[i], value, type }
+            };
 
             if (!clone) {
                 clone = cloneTemplate(templateData);
@@ -749,7 +753,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
             }
         }
 
-        for (let attr of node.attributes) {
+        for (let attr of Array.from(node.attributes)) {
             let name = attr.name;
             let value = attr.value;
 
@@ -783,15 +787,13 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
                 renderedAttribute,
                 index
             );
-            if (namePlaceholder.includes("{{") && name) {
-                const attributes = name.match(/([^\s]+="[^"]*"|[^\s]+)/g) || [];
-                attributes.forEach((attr) => {
-                    let [attributeName, attributeValue] = attr.split("=");
-                    attributeValue = attributeValue
-                        ? attributeValue.replace(/"/g, "")
-                        : "";
-                    node.setAttribute(attributeName, attributeValue);
-                });
+            if (namePlaceholder.includes("{{") && name && !name.includes("{{")) {
+                if (name !== attr.name) {
+                    node.removeAttribute(attr.name);
+                    renderedNodes.delete(attr);
+                }
+                node.setAttribute(name, value ?? "");
+                renderedNodes.set(node.getAttributeNode(name), renderedAttribute);
             } else if (name === undefined || name === null || name === "") {
                 renderedNodes.delete(attr);
                 node.removeAttribute(attr.name);
