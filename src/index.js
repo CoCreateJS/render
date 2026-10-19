@@ -302,7 +302,7 @@ async function render({
             (key && (Array.isArray(data[key]) || renderType)) ||
             Array.isArray(data)
         ) {
-            if (update) {
+            if (update && renderType !== "object") {
                 for (let j = 0; j < data[key].length; j++) {
                     if (key === "object") {
                         clone = clones.get(data[key][j]._id);
@@ -405,18 +405,16 @@ async function renderTemplate(template, data, key, index, keyPath) {
     if (templateData.source && templateData.source.element)
         renderType = templateData.source.element.getAttribute("render-type");
 
-    let renderReverse;
-    if (templateData.source && templateData.source.element) {
-        renderReverse =
-            templateData.source.element.getAttribute("render-reverse");
-        if (renderReverse === null)
-            renderReverse = el.getAttribute("render-reverse");
-    }
+    const renderReverse =
+        templateData.source?.element?.getAttribute("render-reverse") ??
+        el.getAttribute("render-reverse");
 
     let exclude = el.getAttribute("render-exclude") || "";
     if (exclude) {
         exclude = exclude.replace(/ /g, "").split(",");
     }
+    const include = el.getAttribute("render-include");
+    const includePattern = include ? new RegExp(include) : null;
     let reference = el.getAttribute("render-reference");
 
     const isLoadMore = data.filter?.loadMore && !data.filter?.overwrite;
@@ -446,19 +444,35 @@ async function renderTemplate(template, data, key, index, keyPath) {
             renderData = renderData[0];
 
         const keys = Object.keys(renderData);
+        if (renderType === "object" && data.method?.endsWith(".read")) {
+            const present = new Set(keys);
+            for (const [id, element] of templateData.clones) {
+                if (present.has(element.getAttribute("renderedKey"))) continue;
+                renderedNodes.delete(element);
+                element.remove();
+                templateData.clones.delete(id);
+            }
+        }
+        const fieldClones = new Map(
+            Array.from(templateData.clones.values(), (element) => [
+                element.getAttribute("renderedKey"),
+                element
+            ])
+        );
         for (let i = 0; i < keys.length; i++) {
-            let clone = templateData.clones.get(keys[i]);
+            let clone = fieldClones.get(keys[i]);
             clone = renderedNodes.get(clone);
 
             if (
                 exclude.includes(keys[i]) ||
+                (includePattern && !includePattern.test(keys[i])) ||
                 (reference === "false" &&
                     ["$storage", "$database", "$array"].includes(key))
             ) {
                 if (clone) {
                     renderedNodes.delete(clone.element);
                     clone.element.remove();
-                    templateData.clones.delete(keys[i]);
+                    templateData.clones.delete(clone.element.getAttribute("eid"));
                 }
                 continue;
             }
@@ -499,6 +513,7 @@ async function renderTemplate(template, data, key, index, keyPath) {
             clone.element.setAttribute("renderedKey", keys[i]);
             await renderValues(clone.element, Data, keys[i], renderAs);
             insertElement(templateData, clone.element, index);
+            fieldClones.set(keys[i], clone.element);
         }
     } else {
         if (!key && !Array.isArray(renderData)) {
@@ -679,7 +694,7 @@ function insertElement(
             index += data.filter.startingIndex;
         clones.splice(index, 0, item); // Insert item into clones at the specified index
 
-        if (renderReverse !== null && renderReverse !== "false") {
+        if (renderReverse != null && renderReverse !== false && renderReverse !== "false") {
             // Chat-specific logic: reverse rendering but still inserting based on sorting
             if (clones[index + 1] && clones[index + 1][1] !== element) {
                 clones[index + 1][1].insertAdjacentElement("afterend", element);
