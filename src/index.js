@@ -860,6 +860,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
             await renderTemplate(node, data, renderKey);
         } else if (node.childNodes.length > 0) {
             for (let childNode of Array.from(node.childNodes)) {
+                if (childNode.parentNode !== node) continue;
                 await renderValues(
                     childNode,
                     data,
@@ -871,7 +872,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
                 );
             }
         }
-    } else if (node.nodeType == 3) {
+    } else if (node.nodeType == 3 || (node.nodeType == 8 && renderedNode.htmlEnd)) {
         let valueType = node.parentElement.getAttribute("value-type");
 
         let textContent, text;
@@ -895,34 +896,33 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
             if (text != renderedNode.text) {
                 renderedNode.text = text;
 
-                if (
-                    valueType == "text" ||
-                    valueType == "string" ||
-                    valueType != "html"
-                ) {
+                if (valueType !== "html" && !renderedNode.htmlEnd) {
                     node.textContent = text;
                 } else {
-                    const newNode = document.createElement("div");
-                    newNode.innerHTML = text;
-                    let parentElement = node.parentElement;
+                    const content = document.createElement("div");
+                    if (valueType === "html") content.innerHTML = text;
+                    else content.textContent = text;
 
-                    let renderedParent = renderedNodes.get(parentElement);
-                    if (!renderedParent) {
-                        renderedParent = {
-                            placeholder: textContent,
-                            key,
-                            renderAs
-                        };
-                    }
-                    renderedParent.text = text;
-                    for (let newChild of newNode.childNodes) {
-                        renderedNodes.set(newChild, {
+                    if (renderedNode.htmlEnd) {
+                        // Replace this binding's output while retaining its original template.
+                        let child = node.nextSibling;
+                        while (child && child !== renderedNode.htmlEnd) {
+                            const next = child.nextSibling;
+                            child.remove();
+                            child = next;
+                        }
+                        renderedNode.htmlEnd.before(...content.childNodes);
+                    } else {
+                        const start = document.createComment("render");
+                        const end = document.createComment("/render");
+                        renderedNodes.set(start, {
                             ...renderedNode,
-                            element: newChild
+                            element: start,
+                            htmlEnd: end
                         });
+                        renderedNodes.delete(node);
+                        node.replaceWith(start, ...content.childNodes, end);
                     }
-                    renderedNodes.delete(node);
-                    node.replaceWith(...newNode.childNodes);
                 }
 
                 if (node.childNodes.length > 0) {
@@ -1031,15 +1031,17 @@ async function renderValue(
                         sandbox: sandboxContext
                     });
 
-                    // 3. DATA LOOKUP: Resolve simple keys from the provided data object
+                    // 3. Keep AST expression results; resolve plain data paths from the record.
                     // Keep `node` here because getRenderValue needs to look up the attribute cache!
-                    value = getRenderValue(
-                        node,
-                        data,
-                        preProcessed,
-                        renderAs,
-                        index
-                    );
+                    value = placeholderContent.startsWith("$")
+                        ? preProcessed
+                        : getRenderValue(
+                            node,
+                            data,
+                            preProcessed,
+                            renderAs,
+                            index
+                        );
                 }
             } catch (error) {
                 console.error("[Renderer AST Bridge] Value computation error:", error);
