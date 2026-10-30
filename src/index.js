@@ -238,6 +238,8 @@ async function render({
         element = [element];
     }
 
+    const renderedNodesToClear = new Set();
+
     for (let i = 0; i < element.length; i++) {
         let renderedNode = renderedNodes.get(element[i]);
         if (renderedNode) {
@@ -259,6 +261,7 @@ async function render({
             };
             renderedNodes.set(element[i], renderedNode);
         }
+        renderedNodesToClear.add(renderedNode);
 
         let clones = renderedNode.clones; // || renderedNode.template.clones..
         if (!clones && renderedNode.template) {
@@ -333,6 +336,10 @@ async function render({
             await renderValues(element[i], data, key, renderAs);
         }
     }
+    for (const renderedNode of renderedNodesToClear) {
+        clearRendering(renderedNode);
+    }
+
     // Dispatch input and change events after rendering is complete
     if (source instanceof HTMLElement) {
         source.dispatchEvent(new Event("input"));
@@ -679,9 +686,11 @@ function insertElement(
         if (!template.clones) template = template.template;
 
         let item;
+        let isNewClone = false;
         if (!currentIndex && currentIndex !== 0) {
             if (template.clones.has(eid)) return;
             item = [eid, element];
+            isNewClone = true;
         }
 
         const clones = Array.from(template.clones);
@@ -693,6 +702,8 @@ function insertElement(
         if (data && data.filter && data.filter.startingIndex && !data.filter.loadMore)
             index += data.filter.startingIndex;
         clones.splice(index, 0, item); // Insert item into clones at the specified index
+
+        if (isNewClone) trackRendering(template, element);
 
         if (renderReverse != null && renderReverse !== false && renderReverse !== "false") {
             // Chat-specific logic: reverse rendering but still inserting based on sorting
@@ -719,9 +730,30 @@ function insertElement(
 
         template.clones = new Map(clones);
     } else {
+        const isNewClone = !template.clones.has(eid);
+        if (isNewClone) trackRendering(template, element);
         template.clones.set(eid, element);
         template.element.insertAdjacentElement("beforebegin", element);
     }
+}
+
+function trackRendering(renderedNode, element) {
+    element.classList.add("render-pending");
+    if (!renderedNode.rendering) renderedNode.rendering = [];
+    renderedNode.rendering.push(element);
+}
+
+function clearRendering(renderedNode) {
+    if (!renderedNode?.rendering) return;
+
+    const elements = renderedNode.rendering;
+    delete renderedNode.rendering;
+
+    setTimeout(() => {
+        for (const element of elements) {
+            element.classList.remove("render-pending");
+        }
+    }, 300);
 }
 
 async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
