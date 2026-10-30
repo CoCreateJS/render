@@ -15,6 +15,93 @@
   "publishConfig": {
     "access": "public"
   },
+  "cocreate": {
+    "environment": [
+      "client"
+    ],
+    "interface": {
+      "schemaVersion": 1,
+      "summary": "A simple render component in vanilla javascript. Easily configured using HTML5 attributes and/or JavaScript API.",
+      "source": "src/index.js",
+      "declarative": {
+        "selectors": [
+          "[${params}]",
+          "[render-element]",
+          "[render-clone]",
+          "[render-query]"
+        ],
+        "attributes": [
+          {
+            "name": "array"
+          },
+          {
+            "name": "eid"
+          },
+          {
+            "name": "key"
+          },
+          {
+            "name": "render"
+          },
+          {
+            "name": "render-as"
+          },
+          {
+            "name": "render-clone"
+          },
+          {
+            "name": "render-data"
+          },
+          {
+            "name": "render-exclude"
+          },
+          {
+            "name": "render-include"
+          },
+          {
+            "name": "render-limit"
+          },
+          {
+            "name": "render-query"
+          },
+          {
+            "name": "render-reference"
+          },
+          {
+            "name": "render-reverse"
+          },
+          {
+            "name": "render-type"
+          },
+          {
+            "name": "renderedKey"
+          },
+          {
+            "name": "template"
+          },
+          {
+            "name": "value-type"
+          }
+        ],
+        "actions": [
+          {
+            "name": "render"
+          },
+          {
+            "name": "renderKey"
+          }
+        ]
+      },
+      "api": {
+        "exports": [
+          "render",
+          "renderValue",
+          "renderedNodes",
+          "sources"
+        ]
+      }
+    }
+  },
   "scripts": {
     "start": "webpack --config webpack.config.js",
     "build": "webpack --mode=production --config webpack.config.js",
