@@ -28,13 +28,23 @@ import {
     getValueFromObject,
     dotNotationToObject,
     ObjectId,
-    astAsync,
+    renderValue as renderValueUtility,
     uuid
 } from "@cocreate/utils";
 import "@cocreate/element-prototype";
 import "./index.css";
 
+/**
+ *
+ * @public
+ * @environment client
+ */
 const sources = new Map();
+/**
+ *
+ * @public
+ * @environment client
+ */
 const renderedNodes = new Map();
 const elementSelector = "[render-query]";
 
@@ -91,6 +101,8 @@ function setRenderContext(renderedNode, context = {}) {
  * - If an HTMLCollection or an array of elements is provided, each element in the collection/array is initialized.
  * - If a single element is provided, only that element is initialized.
  * - If null or omitted, the function queries and initializes all elements matching the 'elementSelector'.
+ * @private
+ * @environment client
  */
 function init(element) {
     if (
@@ -142,6 +154,8 @@ function init(element) {
  * @param {number} [options.currentIndex] - The current index in a list or array rendering process.
  * @param {boolean} [options.update] - Flag to indicate if the rendering should update existing content.
  * @param {boolean} [options.remove] - Flag to indicate if the rendering should remove elements instead of updating or appending.
+ * @public
+ * @environment client
  */
 async function render({
     source,
@@ -977,7 +991,7 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
 
 /**
  * Renders placeholders within a string using asynchronous AST calculations and data context binding.
- * 
+ *
  * @param {Node} node - The target DOM node (attributes, text nodes, elements).
  * @param {Object} data - The contextual database record or dataset being rendered.
  * @param {string} placeholder - The raw template string containing double curly braces (e.g. "{{ $query('#input').value }}").
@@ -985,127 +999,19 @@ async function renderValues(node, data, key, renderAs, keyPath, parent, index) {
  * @param {HTMLElement} renderedNode - Optional target element where rendering applies.
  * @param {number} index - Optional current iteration index if rendering a list.
  * @returns {Promise<string>} - A promise resolving to the fully processed output string.
+ * @public
+ * @environment client
  */
-async function renderValue(
-    node,
-    data,
-    placeholder,
-    renderAs,
-    renderedNode,
-    index
-) {
-    let output = placeholder;
-
-    // Determine the actual HTMLElement for astAsync
-    // If the node is not an Element (nodeType 1), get its owner or parent element.
-    // This safely covers Attributes (ownerElement), Text, Comments, etc. (parentElement)
-    let contextElement = node;
-    if (node && node.nodeType !== 1) {
-        contextElement = node.ownerElement || node.parentElement;
-    }
-
-    // Matches ONLY the innermost {{ }} brackets to prevent greedy-matching nested boundaries.
-    let regex = /\{\{\s*((?:(?!\{\{|\}\})[\s\S])+?)\s*\}\}/;
-    let omitted = {};
-
-    let match;
-    do {
-        match = output.match(regex);
-        if (match) {
-            let value;
-            let placeholderContent = match[1].trim();
-
-            try {
-                if (placeholderContent === "index" && index >= 0) {
-                    value = index;
-                } else {
-                    // --- UNIFIED PARSING PROCESS ---
-                    let preProcessed = placeholderContent;
-
-                    // Build unified evaluation sandbox inheriting state & local indices
-                    const sandboxContext = {
-                        data: data,
-                        $data: data,
-                        index: index,
-                        $index: index,
-                        ...data // Expose data fields natively so they are available as local sandbox variables
-                    };
-
-                    // 1. PRE-PROCESSOR FOR QUOTED OPERATORS (Saves and processes quoted formulas first)
-                    let quoteRegex = /(['"])(.*?)\1/g;
-                    let quoteMatch;
-                    let replacements = [];
-                    while ((quoteMatch = quoteRegex.exec(preProcessed)) !== null) {
-                        let quoteType = quoteMatch[1];
-                        let content = quoteMatch[2];
-                        if (content.trim().startsWith('\u0024')) {
-                            let resolved = await astAsync({
-                                executeAST: content,
-                                node: contextElement,
-                                sandbox: sandboxContext
-                            });
-                            if (resolved === null || resolved === undefined) resolved = "";
-                            replacements.push({
-                                original: quoteMatch[0],
-                                replacement: `${quoteType}${resolved}${quoteType}`
-                            });
-                        }
-                    }
-
-                    for (let r of replacements) {
-                        preProcessed = preProcessed.replace(r.original, r.replacement);
-                    }
-
-                    // 2. PRE-PROCESSOR: Resolve unquoted DOM selectors, custom operators, and CRUD JSON formulas
-                    preProcessed = await astAsync({
-                        executeAST: preProcessed,
-                        node: contextElement,
-                        sandbox: sandboxContext
-                    });
-
-                    // 3. Keep AST expression results; resolve plain data paths from the record.
-                    // Keep `node` here because getRenderValue needs to look up the attribute cache!
-                    value = placeholderContent.startsWith("$")
-                        ? preProcessed
-                        : getRenderValue(
-                            node,
-                            data,
-                            preProcessed,
-                            renderAs,
-                            index
-                        );
-                }
-            } catch (error) {
-                console.error("[Renderer AST Bridge] Value computation error:", error);
-            }
-
-            // Replace the placeholder with the resolved value
-            if (value !== undefined && value !== null) {
-                if (typeof value === "object") {
-                    value = JSON.stringify(value, null, 2);
-                }
-                output = output.replaceAll(match[0], value);
-            } else if (renderAs) {
-                if (match[0].startsWith(`{{${renderAs}.`)) {
-                    output = output.replaceAll(match[0], "");
-                } else if (placeholderContent) {
-                    output = output.replaceAll(
-                        match[0],
-                        `<|${placeholderContent}|>`
-                    );
-                    omitted[`<|${placeholderContent}|>`] = match[0];
-                }
-            } else {
-                match = null;
-            }
-        }
-    } while (match);
-
-    for (let key of Object.keys(omitted)) {
-        output = output.replaceAll(key, omitted[key]);
-    }
-
-    return output;
+async function renderValue(node, data, placeholder, renderAs, renderedNode, index) {
+    return renderValueUtility(
+        node,
+        data,
+        placeholder,
+        renderAs,
+        renderedNode,
+        index,
+        getRenderValue
+    );
 }
 
 function getRenderValue(node, data, key, renderAs, renderIndex) {
@@ -1374,3 +1280,184 @@ Observer.init({
 init();
 
 export { render, renderValue, sources, renderedNodes };
+
+/**
+ *
+ * @name array
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name eid
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name key
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-as
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-clone
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-data
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-exclude
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-include
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-limit
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-query
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-reference
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-reverse
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name render-type
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name renderedKey
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name template
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ *
+ * @name value-type
+ * @kind member
+ * @attribute
+ * @environment client
+ */
+
+/**
+ * A simple render component in vanilla javascript. Easily configured using HTML5 attributes and/or JavaScript API.
+ *
+ * @module render
+ * @environment client
+ */
+
+/**
+ * Declarative selectors recognized by this module.
+ *
+ * @name declarative-selectors
+ * @kind member
+ * @selectors
+ * @environment client
+ * @example
+ * ```json
+ * [
+ *   "[${params}]",
+ *   "[render-element]",
+ *   "[render-clone]",
+ *   "[render-query]"
+ * ]
+ * ```
+ */
+
+/**
+ * Declarative actions supported or registered by this module.
+ *
+ * @name declarative-actions
+ * @kind member
+ * @actions
+ * @environment client
+ * @example
+ * ```json
+ * [
+ *   {
+ *     "name": "render"
+ *   },
+ *   {
+ *     "name": "renderKey"
+ *   }
+ * ]
+ * ```
+ */
