@@ -1,3 +1,30 @@
+# [1.49.0](https://github.com/CoCreateJS/render/compare/v1.48.2...v1.49.0) (2026-11-02)
+
+
+### Bug Fixes
+
+* add Deno specific entries to .gitignore ([2926933](https://github.com/CoCreateJS/render/commit/29269337e2d8be9daab3a5d2c9e30a6c21441e84))
+* bump [@cocreate](https://github.com/cocreate) dependencies ([0267013](https://github.com/CoCreateJS/render/commit/02670133a785bbf5c975717f45bda276d45f74a4))
+* bump [@cocreate](https://github.com/cocreate) package versions ([e26a490](https://github.com/CoCreateJS/render/commit/e26a490adbc3127f45558ccd3c559bd49a5823a7))
+* bump versions ([bfe39d2](https://github.com/CoCreateJS/render/commit/bfe39d225c249e8f77d0fb3b3dcbe0d5ad3a6971))
+* bump versions ([240fcd2](https://github.com/CoCreateJS/render/commit/240fcd26fa992163217fe6e7ff57031ed910b7fa))
+* handle missing render clone collections ([a10793d](https://github.com/CoCreateJS/render/commit/a10793da12b51c7365bf319cba9bbab31f730169))
+* isolate nested render query templates ([450d045](https://github.com/CoCreateJS/render/commit/450d04518919420502ff073cf730968afe514d2b))
+* preserve AST render results and HTML bindings ([7f8bbc6](https://github.com/CoCreateJS/render/commit/7f8bbc6706a26418a60dd05446732617c868f6a4))
+* preserve nested render context ([418e1e9](https://github.com/CoCreateJS/render/commit/418e1e9e3d219bfae9abb653b64598b6fc8fdcac))
+* preserve nested render metadata ([a04670b](https://github.com/CoCreateJS/render/commit/a04670b4ed8e56c11ba02be95eec7ea4925a329f))
+* remove trailing slash from node_modules entry in .gitignore ([cadaccc](https://github.com/CoCreateJS/render/commit/cadaccc3d876e58eff5324d26023f87e465eb1c3))
+* replace legacy $filter field with filter ([17c6dbd](https://github.com/CoCreateJS/render/commit/17c6dbd065df1a8596d7ea2ccab347b8c4a355dc))
+* update git url ([5e2345d](https://github.com/CoCreateJS/render/commit/5e2345d3b3ed7bab1e8a2d67449ee543ae751dd0))
+* update GitHub Actions to use latest versions and sync package.json description ([dd36b88](https://github.com/CoCreateJS/render/commit/dd36b887e58789995b64f082ba3eb8f70880f671))
+* update render logic to handle renderType, include/exclude patterns  and renderReverse. ([74f3ab1](https://github.com/CoCreateJS/render/commit/74f3ab1388b5adbdd0c80cdbc059e4976d4144b6))
+* update string escape for dollar sign in renderValue function ([77064db](https://github.com/CoCreateJS/render/commit/77064db2172a1ee4e112f41afdd35061dcb16124))
+
+
+### Features
+
+* replace uuid import and usage with utils ([90ca8ab](https://github.com/CoCreateJS/render/commit/90ca8ab5d2a7bedffca8f3ac22f998b227ab71bf))
+
 ## [1.48.2](https://github.com/CoCreateJS/CoCreate-render/compare/v1.48.1...v1.48.2) (2026-07-19)
 
 
