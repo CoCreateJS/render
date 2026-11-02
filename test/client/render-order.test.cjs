@@ -4,7 +4,7 @@ const { join } = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = readFileSync(join(__dirname, '../src/index.js'), 'utf8');
+const source = readFileSync(join(__dirname, '../../src/client/index.js'), 'utf8');
 const renderTemplate = source.slice(source.indexOf('async function renderTemplate('), source.indexOf('function cloneTemplate('));
 const insertElement = source.slice(source.indexOf('function insertElement('), source.indexOf('async function renderValues('));
 const regions = ['us-east-1', 'us-east-2', 'us-west-1', 'me-south-1'];

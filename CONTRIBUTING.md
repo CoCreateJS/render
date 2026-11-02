@@ -1,19 +1,19 @@
 # Contributing to CoCreate-render
 
-This project is work of [many contributors](https://github.com/CoCreateJS/CoCreate-render/graphs/contributors).
-You're encouraged to submit [pull requests](https://github.com/CoCreateJS/CoCreate-render/pulls),
-[propose features and discuss issues](https://github.com/CoCreateJS/CoCreate-render/issues).
+This project is work of [many contributors](https://github.com/CoCreateJS/render/graphs/contributors).
+You're encouraged to submit [pull requests](https://github.com/CoCreateJS/render/pulls),
+[propose features and discuss issues](https://github.com/CoCreateJS/render/issues).
 
 In the examples below, substitute your Github username for `contributor` in URLs.
 
 ## Fork the Project
 
-Fork the [project on Github](https://github.com/CoCreateJS/CoCreate-render) and check out your copy.
+Fork the [project on Github](https://github.com/CoCreateJS/render) and check out your copy.
 
 ```
 git render https://github.com/contributor/CoCreate-render.git
 cd CoCreate-render
-git remote add upstream https://github.com/cocreatejs/CoCreate-render.git
+git remote add upstream https://github.com/CoCreateJS/render.git
 ```
 
 ## Create a Topic Branch
@@ -75,7 +75,7 @@ git push origin my-feature-branch
 
 ## Make a Pull Request
 
-Go to [https://github.com/CoCreateJS/CoCreate-render](https://github.com/CoCreateJS/CoCreate-render) and select your feature branch.
+Go to [https://github.com/CoCreateJS/render](https://github.com/CoCreateJS/render) and select your feature branch.
 Click the 'Pull Request' button and fill out the form. Pull requests are usually reviewed within a few days.
 
 ## Rebase

@@ -4,7 +4,7 @@ const { join } = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const source = readFileSync(join(__dirname, '../src/index.js'), 'utf8');
+const source = readFileSync(join(__dirname, '../../src/client/index.js'), 'utf8');
 const functions = source.slice(source.indexOf('async function renderValue('), source.indexOf('async function renderKey('));
 let context;
 let received;

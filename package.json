@@ -22,19 +22,20 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cocreatejs/CoCreate-render.git"
+    "url": "git+https://github.com/CoCreateJS/render.git"
   },
   "author": "CoCreate LLC",
   "license": "AGPL-3.0",
   "bugs": {
-    "url": "https://github.com/CoCreateJS/CoCreate-render/issues"
+    "url": "https://github.com/CoCreateJS/render/issues"
   },
   "homepage": "https://CoCreateJS.com/docs/render",
   "funding": {
     "type": "GitHub Sponsors ❤",
-    "url": "https://github.com/sponsors/CoCreate-app"
+    "url": "https://github.com/sponsors/CoCreateJS"
   },
-  "main": "./src/index.js",
+  "main": "./src/server/index.js",
+  "browser": "./src/client/index.js",
   "dependencies": {
     "@cocreate/actions": "^1.24.0",
     "@cocreate/api": "^1.31.0",
@@ -45,21 +46,14 @@
   "devDependencies": {
     "@cocreate/webpack": "^1.9.0"
   },
-  "allowScripts": {
-    "@cocreate/actions@1.21.4": true,
-    "@cocreate/api@1.22.5": true,
-    "@cocreate/config@1.13.4": true,
-    "@cocreate/crud-client@1.34.6": true,
-    "@cocreate/element-prototype@1.31.4": true,
-    "@cocreate/elements@1.42.9": true,
-    "@cocreate/filter@1.33.6": true,
-    "@cocreate/indexeddb@1.23.4": true,
-    "@cocreate/local-storage@1.16.5": true,
-    "@cocreate/observer@1.19.0": true,
-    "@cocreate/organizations@1.30.1": true,
-    "@cocreate/render@1.46.1": true,
-    "@cocreate/socket-client@1.40.5": true,
-    "@cocreate/utils@1.42.2": true,
-    "@cocreate/webpack@1.4.3": true
+  "exports": {
+    ".": {
+      "node": "./src/server/index.js",
+      "deno": "./src/server/index.js",
+      "browser": "./src/client/index.js",
+      "default": "./src/server/index.js"
+    },
+    "./server": "./src/server/index.js",
+    "./client": "./src/client/index.js"
   }
 }
