@@ -612,184 +612,161 @@ export async function HTML({
 /**
  *
  * @name actions
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name array
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name class
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name component
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name content
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name color-scheme
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name error
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name filter
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name href
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name i18n
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name key
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name media
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name name
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name object
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name plugin
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name rel
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name render-error
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name render-query
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name rendered
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name src
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name state-id
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name state-overwrite
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
 /**
  *
  * @name type
- * @kind member
- * @attribute
+ * @kind attribute
  * @environment server
  */
 
