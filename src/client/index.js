@@ -22,6 +22,7 @@
 
 /*globals CustomEvent*/
 import Actions from "@cocreate/actions";
+import { astAsync } from "@cocreate/ast/client";
 import Observer from "@cocreate/observer";
 import {
     queryElements,
@@ -29,7 +30,7 @@ import {
     dotNotationToObject,
     ObjectId,
     renderValue as renderValueUtility,
-    uuid
+    uid
 } from "@cocreate/utils";
 import "@cocreate/element-prototype";
 import "./index.css";
@@ -339,7 +340,7 @@ async function render({
             } else {
                 // TODO: if $auto here every subsequent clone will have same value, not replacing here will apply unique value to each clone
                 if (key === "$auto")
-                    key = key.replace(/\$auto/g, uuid(6));
+                    key = key.replace(/\$auto/g, uid(6));
 
                 if (key) element[i].setAttribute("render", key);
 
@@ -645,7 +646,7 @@ function cloneTemplate(template) {
 
     let renderAs = clone.getAttribute("render-as");
     if (renderAs === "$auto") {
-        renderAs = uuid(6);
+        renderAs = uid(6);
         clone = clone.outerHTML.replace(/\$auto/g, renderAs);
     }
 
@@ -692,7 +693,7 @@ function insertElement(
 ) {
     let eid = element.getAttribute("eid");
     if (!eid) {
-        eid = uuid(6);
+        eid = uid(6);
         element.setAttribute("eid", eid);
     }
 
@@ -1010,7 +1011,8 @@ async function renderValue(node, data, placeholder, renderAs, renderedNode, inde
         renderAs,
         renderedNode,
         index,
-        getRenderValue
+        getRenderValue,
+        { astAsync }
     );
 }
 
@@ -1065,7 +1067,7 @@ function getRenderValue(node, data, key, renderAs, renderIndex) {
                         } else if (key === "object" || key === "_id")
                             value = ObjectId().toString();
                         else if (key === "uuid") {
-                            value = uuid(6);
+                            value = uid(6);
                         } else if (parent.source) {
                             Data = parent.source.data;
                         } else if (parent.parent) {
