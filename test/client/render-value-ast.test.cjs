@@ -10,10 +10,10 @@ let context;
 let received;
 
 test.before(async () => {
-    const { astAsync } = await import('../../../ast/src/client.js');
+    const { evaluateAsync } = await import('../../../evaluate/src/client.js');
     const { getValueFromObject } = await import('../../CoCreate-utils/src/modules/getValueFromObject.js');
     const window = { markdown: { render(value) { received = value; return '<p>Rendered</p>\n'; } } };
-    context = vm.createContext({ astAsync, getValueFromObject, renderedNodes: new Map(), window, console });
+    context = vm.createContext({ evaluateAsync, getValueFromObject, renderedNodes: new Map(), window, console });
     vm.runInContext(functions, context);
 });
 

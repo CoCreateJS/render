@@ -38,7 +38,7 @@
   "browser": "./src/client/index.js",
   "dependencies": {
     "@cocreate/actions": "^2.0.1",
-    "@cocreate/ast": "^1.0.0",
+    "@cocreate/evaluate": "^1.0.0",
     "@cocreate/api": "^2.1.1",
     "@cocreate/element-prototype": "^2.0.1",
     "@cocreate/observer": "^2.0.1",

@@ -22,7 +22,7 @@
 
 /*globals CustomEvent*/
 import Actions from "@cocreate/actions";
-import { astAsync } from "@cocreate/ast/client";
+import { evaluateAsync } from "@cocreate/evaluate";
 import Observer from "@cocreate/observer";
 import {
     queryElements,
@@ -1012,7 +1012,7 @@ async function renderValue(node, data, placeholder, renderAs, renderedNode, inde
         renderedNode,
         index,
         getRenderValue,
-        { astAsync }
+        { evaluateAsync }
     );
 }
 
